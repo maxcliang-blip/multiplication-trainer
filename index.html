@@ -44,23 +44,13 @@
     }
     .diff-btn.active { border-color: #e94560; color: #e94560; background: rgba(233,69,96,0.1); }
     .diff-btn:hover { border-color: #e94560; }
-    .timer-bar {
-      width: 100%;
-      height: 6px;
-      background: #0f3460;
-      border-radius: 3px;
-      margin-bottom: 1rem;
-      overflow: hidden;
+    .stopwatch {
+      font-size: 2.8rem;
+      font-weight: bold;
+      color: #ffeb3b;
+      margin-bottom: 0.5rem;
+      font-variant-numeric: tabular-nums;
     }
-    .timer-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336);
-      border-radius: 3px;
-      transition: width 0.1s linear;
-      width: 100%;
-    }
-    .timer-fill.pulse { animation: pulse 0.5s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
     .problem {
       font-size: 2.8rem;
       font-weight: bold;
@@ -68,9 +58,7 @@
       letter-spacing: 4px;
       transition: transform 0.1s;
     }
-    .problem.shake {
-      animation: shake 0.4s;
-    }
+    .problem.shake { animation: shake 0.4s; }
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       20% { transform: translateX(-10px); }
@@ -78,9 +66,7 @@
       60% { transform: translateX(-6px); }
       80% { transform: translateX(6px); }
     }
-    .problem.bounce {
-      animation: bounce 0.4s;
-    }
+    .problem.bounce { animation: bounce 0.4s; }
     @keyframes bounce {
       0% { transform: scale(1); }
       50% { transform: scale(1.15); }
@@ -177,7 +163,7 @@
       <button class="diff-btn active" onclick="setDiff('med')">Medium (3d)</button>
       <button class="diff-btn" onclick="setDiff('hard')">Hard (4d)</button>
     </div>
-    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="stopwatch" id="stopwatch">0.0s</div>
     <div class="problem" id="problem"></div>
     <div class="combo-text" id="combo"></div>
     <input type="number" id="answer" placeholder="?" autofocus />
@@ -192,23 +178,32 @@
 
   <script>
     let a, b, correct = 0, total = 0, streak = 0, highScore = 0;
-    let timerInterval, timeLeft, maxTime = 20;
+    let timerInterval, elapsed = 0;
     let diff = 'med';
 
     const sounds = {
       correct: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2DgYF8eH2ChYaGg4B6eHl+g4WFhIF9eXl+g4WEhIF9eXh+goODhIB9enh+gYKDhIB9enh+gYKDhIB+enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B+enh+gYKCg4A='),
       wrong: new Audio('data:audio/wav;base64,UklGRl4GAABXQVZFZm10IBAAAAABAAEARK4AAIhYAAACABAAZGF0YToGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='),
-      streak: new Audio('data:audio/wav;base64,UklGRnYGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU4GAAB+hYqFbF1fdH2DgYF8eH2ChYaGg4B5eHl+g4aEhIF9eXh+gYODhIB9enh+goODhIB9enh+goODhIB9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4A=')
+      streak: new Audio('data:audio/wav;base64,UklGRnYGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU4GAAB+hYqFbF1fdH2DgYF8eH2ChYaGg4B5eHl+g4aEhIF9eXh+gYODhIB9enh+goODhIB9enh+goODhIB9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4A=')
     };
 
     const diffRanges = { easy: [10, 90], med: [100, 900], hard: [1000, 9000] };
-    const diffTimes = { easy: 15, med: 20, hard: 30 };
 
     function setDiff(d) {
       diff = d;
       document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
       event.target.classList.add('active');
       newProblem();
+    }
+
+    function startStopwatch() {
+      clearInterval(timerInterval);
+      elapsed = 0;
+      document.getElementById('stopwatch').textContent = '0.0s';
+      timerInterval = setInterval(() => {
+        elapsed += 0.1;
+        document.getElementById('stopwatch').textContent = elapsed.toFixed(1) + 's';
+      }, 100);
     }
 
     function newProblem() {
@@ -221,38 +216,7 @@
       document.getElementById('result').className = 'result';
       document.getElementById('combo').textContent = streak >= 3 ? `🔥 ${streak}x streak! +${streak} bonus` : '';
       document.getElementById('answer').focus();
-      startTimer();
-    }
-
-    function startTimer() {
-      clearInterval(timerInterval);
-      maxTime = diffTimes[diff];
-      timeLeft = maxTime;
-      const fill = document.getElementById('timerFill');
-      fill.style.width = '100%';
-      fill.classList.remove('pulse');
-      timerInterval = setInterval(() => {
-        timeLeft -= 0.1;
-        const pct = Math.max(0, (timeLeft / maxTime) * 100);
-        fill.style.width = pct + '%';
-        if (pct < 30) fill.classList.add('pulse');
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          timeUp();
-        }
-      }, 100);
-    }
-
-    function timeUp() {
-      streak = 0;
-      total++;
-      const el = document.getElementById('problem');
-      el.classList.add('shake');
-      setTimeout(() => el.classList.remove('shake'), 400);
-      document.getElementById('result').textContent = `⏰ Time's up! Answer: ${a * b}`;
-      document.getElementById('result').className = 'result wrong';
-      updateStats();
-      setTimeout(newProblem, 1500);
+      startStopwatch();
     }
 
     function check() {
@@ -264,18 +228,18 @@
 
       total++;
       const el = document.getElementById('problem');
-      const timeBonus = Math.floor((timeLeft / maxTime) * 5);
+      const timeTaken = elapsed.toFixed(1);
       let points = 1;
 
       if (val === a * b) {
         correct++;
         streak++;
-        points = 1 + streak + timeBonus;
+        points = 1 + streak;
         if (streak >= 3) { sounds.streak.play(); spawnConfetti(); }
         else { sounds.correct.play(); }
         el.classList.add('bounce');
         setTimeout(() => el.classList.remove('bounce'), 400);
-        result.textContent = `✅ Correct! +${points} pts${timeBonus ? ` (⏱+${timeBonus})` : ''}`;
+        result.textContent = `✅ Correct in ${timeTaken}s! +${points} pts`;
         result.className = 'result correct';
         if (streak >= 3) spawnFire();
       } else {
