@@ -98,6 +98,15 @@
       transition: background 0.2s;
     }
     .btn:hover { background: #c73650; }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #e94560;
+      color: #e94560;
+      margin-top: 0.8rem;
+      padding: 0.5rem 2rem;
+      font-size: 0.95rem;
+    }
+    .btn-outline:hover { background: rgba(233,69,96,0.15); }
     .result {
       margin-top: 1rem;
       font-size: 1.3rem;
@@ -152,6 +161,95 @@
       font-size: 0.8rem;
       color: #666;
     }
+
+    /* Stats modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      width: 90%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    }
+    .modal h2 {
+      text-align: center;
+      margin-bottom: 1.2rem;
+      color: #a8a8d8;
+    }
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #888;
+      background: none;
+      border: none;
+    }
+    .modal-close:hover { color: #eee; }
+    .stat-section { margin-bottom: 1.2rem; }
+    .stat-section h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+      margin-bottom: 0.6rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem 1.5rem;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95rem;
+    }
+    .stat-row span:first-child { color: #888; }
+    .stat-row span:last-child { font-weight: bold; }
+    .history-list {
+      list-style: none;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .history-list li {
+      padding: 0.35rem 0;
+      border-bottom: 1px solid #1a1a2e;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+    .history-list .time { color: #888; }
+    .history-list .correct-h { color: #4caf50; }
+    .history-list .wrong-h { color: #f44336; }
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #0f3460;
+      border-radius: 5px;
+      margin-top: 0.4rem;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e94560, #4caf50);
+      border-radius: 5px;
+      transition: width 0.3s;
+    }
   </style>
 </head>
 <body>
@@ -174,12 +272,68 @@
       <div class="stat-item"><span class="stat-val" id="streakVal">0</span>Streak</div>
       <div class="stat-item"><span class="stat-val" id="accuracyVal">0%</span>Accuracy</div>
     </div>
+    <button class="btn btn-outline" onclick="openStats()">Detailed Stats</button>
+  </div>
+
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeStats()">&times;</button>
+      <h2>Detailed Stats</h2>
+
+      <div class="stat-section">
+        <h3>Overall</h3>
+        <div class="stat-grid">
+          <div class="stat-row"><span>Total Solved</span><span id="dTotal">0</span></div>
+          <div class="stat-row"><span>Correct</span><span id="dCorrect" style="color:#4caf50">0</span></div>
+          <div class="stat-row"><span>Wrong</span><span id="dWrong" style="color:#f44336">0</span></div>
+          <div class="stat-row"><span>Accuracy</span><span id="dAccuracy">0%</span></div>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="dAccuracyBar"></div></div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Time</h3>
+        <div class="stat-grid">
+          <div class="stat-row"><span>Avg Time</span><span id="dAvgTime">0.0s</span></div>
+          <div class="stat-row"><span>Best Time</span><span id="dBestTime">-</span></div>
+          <div class="stat-row"><span>Total Time</span><span id="dTotalTime">0s</span></div>
+          <div class="stat-row"><span>Problems / Min</span><span id="dPPM">0</span></div>
+        </div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Streaks</h3>
+        <div class="stat-grid">
+          <div class="stat-row"><span>Current Streak</span><span id="dStreak">0</span></div>
+          <div class="stat-row"><span>Best Streak</span><span id="dBestStreak">0</span></div>
+        </div>
+      </div>
+
+      <div class="stat-section">
+        <h3>By Difficulty</h3>
+        <div class="stat-grid">
+          <div class="stat-row"><span>Easy</span><span id="dEasy">0 / 0</span></div>
+          <div class="stat-row"><span>Medium</span><span id="dMed">0 / 0</span></div>
+          <div class="stat-row"><span>Hard</span><span id="dHard">0 / 0</span></div>
+        </div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Recent History</h3>
+        <ul class="history-list" id="dHistory"></ul>
+      </div>
+
+      <button class="btn btn-outline" onclick="resetStats()" style="width:100%;margin-top:0.5rem">Reset All Stats</button>
+    </div>
   </div>
 
   <script>
-    let a, b, correct = 0, total = 0, streak = 0, highScore = 0;
+    let a, b, correct = 0, total = 0, streak = 0, highScore = 0, bestStreak = 0;
     let timerInterval, elapsed = 0;
     let diff = 'med';
+    let totalTime = 0, bestTime = Infinity;
+    let history = [];
+    let diffStats = { easy: {c:0,t:0}, med: {c:0,t:0}, hard: {c:0,t:0} };
 
     const sounds = {
       correct: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2DgYF8eH2ChYaGg4B6eHl+g4WFhIF9eXl+g4WEhIF9eXh+goODhIB9enh+gYKDhIB9enh+gYKDhIB+enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B9enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B9enh+gYKCg4B+enh+gYKCg4B+enh+gYKCg4A='),
@@ -188,6 +342,29 @@
     };
 
     const diffRanges = { easy: [10, 90], med: [100, 900], hard: [1000, 9000] };
+
+    function loadStats() {
+      const s = JSON.parse(localStorage.getItem('multStats') || '{}');
+      correct = s.correct || 0;
+      total = s.total || 0;
+      streak = s.streak || 0;
+      bestStreak = s.bestStreak || 0;
+      highScore = s.highScore || 0;
+      totalTime = s.totalTime || 0;
+      bestTime = s.bestTime === undefined ? Infinity : s.bestTime;
+      history = s.history || [];
+      diffStats = s.diffStats || { easy: {c:0,t:0}, med: {c:0,t:0}, hard: {c:0,t:0} };
+      document.getElementById('highScore').textContent = highScore;
+      updateStats();
+    }
+
+    function saveStats() {
+      localStorage.setItem('multStats', JSON.stringify({
+        correct, total, streak, bestStreak, highScore, totalTime,
+        bestTime: bestTime === Infinity ? null : bestTime,
+        history, diffStats
+      }));
+    }
 
     function setDiff(d) {
       diff = d;
@@ -227,14 +404,18 @@
       if (isNaN(val)) { result.textContent = 'Enter a number'; return; }
 
       total++;
+      totalTime += elapsed;
       const el = document.getElementById('problem');
-      const timeTaken = elapsed.toFixed(1);
+      const timeTaken = parseFloat(elapsed.toFixed(1));
       let points = 1;
+      const isCorrect = val === a * b;
 
-      if (val === a * b) {
+      if (isCorrect) {
         correct++;
         streak++;
+        if (streak > bestStreak) bestStreak = streak;
         points = 1 + streak;
+        if (timeTaken < bestTime) bestTime = timeTaken;
         if (streak >= 3) { sounds.streak.play(); spawnConfetti(); }
         else { sounds.correct.play(); }
         el.classList.add('bounce');
@@ -251,8 +432,17 @@
         result.className = 'result wrong';
       }
 
+      diffStats[diff].t++;
+      if (isCorrect) diffStats[diff].c++;
+
+      history.unshift({
+        a, b, answer: val, correct: isCorrect, time: timeTaken, diff, ts: Date.now()
+      });
+      if (history.length > 50) history.pop();
+
       document.getElementById('combo').textContent = streak >= 3 ? `🔥 ${streak}x streak! +${streak} bonus` : streak > 0 ? `${streak} in a row` : '';
       updateStats();
+      saveStats();
       setTimeout(newProblem, 1200);
     }
 
@@ -261,6 +451,52 @@
       document.getElementById('streakVal').textContent = streak;
       document.getElementById('accuracyVal').textContent = total ? Math.round((correct / total) * 100) + '%' : '0%';
       if (correct > highScore) { highScore = correct; document.getElementById('highScore').textContent = highScore; }
+    }
+
+    function openStats() {
+      document.getElementById('dTotal').textContent = total;
+      document.getElementById('dCorrect').textContent = correct;
+      document.getElementById('dWrong').textContent = total - correct;
+      const acc = total ? Math.round((correct / total) * 100) : 0;
+      document.getElementById('dAccuracy').textContent = acc + '%';
+      document.getElementById('dAccuracyBar').style.width = acc + '%';
+      const avgT = total ? (totalTime / total).toFixed(1) : '0.0';
+      document.getElementById('dAvgTime').textContent = avgT + 's';
+      document.getElementById('dBestTime').textContent = bestTime === Infinity ? '-' : bestTime.toFixed(1) + 's';
+      document.getElementById('dTotalTime').textContent = formatTime(totalTime);
+      document.getElementById('dPPM').textContent = totalTime > 0 ? ((total / totalTime) * 60).toFixed(1) : '0';
+      document.getElementById('dStreak').textContent = streak;
+      document.getElementById('dBestStreak').textContent = bestStreak;
+      document.getElementById('dEasy').textContent = `${diffStats.easy.c} / ${diffStats.easy.t}`;
+      document.getElementById('dMed').textContent = `${diffStats.med.c} / ${diffStats.med.t}`;
+      document.getElementById('dHard').textContent = `${diffStats.hard.c} / ${diffStats.hard.t}`;
+      const list = document.getElementById('dHistory');
+      list.innerHTML = history.slice(0, 20).map(h => `
+        <li>
+          <span>${h.a} × ${h.b} = ${h.a * h.b}</span>
+          <span class="${h.correct ? 'correct-h' : 'wrong-h'}">${h.correct ? '✓' : '✗'} ${h.time}s</span>
+        </li>
+      `).join('');
+      document.getElementById('statsModal').classList.add('open');
+    }
+
+    function closeStats() { document.getElementById('statsModal').classList.remove('open'); }
+
+    function resetStats() {
+      if (!confirm('Reset all stats?')) return;
+      correct = 0; total = 0; streak = 0; bestStreak = 0; highScore = 0;
+      totalTime = 0; bestTime = Infinity; history = [];
+      diffStats = { easy: {c:0,t:0}, med: {c:0,t:0}, hard: {c:0,t:0} };
+      localStorage.removeItem('multStats');
+      document.getElementById('highScore').textContent = '0';
+      updateStats();
+      closeStats();
+    }
+
+    function formatTime(s) {
+      if (s < 60) return s.toFixed(1) + 's';
+      const m = Math.floor(s / 60);
+      return m + 'm ' + (s % 60).toFixed(0) + 's';
     }
 
     function spawnFire() {
@@ -292,7 +528,11 @@
     document.getElementById('answer').addEventListener('keydown', e => {
       if (e.key === 'Enter') check();
     });
+    document.getElementById('statsModal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeStats();
+    });
 
+    loadStats();
     newProblem();
   </script>
 </body>
